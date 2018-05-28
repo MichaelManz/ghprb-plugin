@@ -282,7 +282,8 @@ public class GhprbPullRequestMergeTest {
                 failOnNonMerge,
                 deleteOnMerge,
                 allowMergeWithoutTriggerPhrase,
-                onlyApprovedCode));
+                onlyApprovedCode,
+                false, ""));
 
         merger.setHelper(helper);
 

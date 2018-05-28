@@ -18,6 +18,17 @@ public class GhprbPullRequestMergeContext implements Context {
 
     boolean onlyApprovedCode;
 
+    boolean requireApprovePhrase;
+
+    String approveCommentPhrase = "";
+
+    /**
+     * @param approveCommentPhrase ...
+     */
+    public void approveCommentPhrase(String approveCommentPhrase) {
+        this.approveCommentPhrase = approveCommentPhrase;
+    }
+
     /**
      * @param mergeComment Sets a comment that should show up when the merge command is sent to GitHub.
      */
@@ -105,9 +116,13 @@ public class GhprbPullRequestMergeContext implements Context {
     }
 
     /**
-     * Allows only approved changes to be merged. Defaults to {@code false}.
+     * @param requireApprovePhrase .... Defaults to {@code false}.
      */
-    public void onlyApprovedCode() {
-        onlyApprovedCode(false);
+    public void requireApprovePhrase(boolean requireApprovePhrase) {
+        this.requireApprovePhrase = requireApprovePhrase;
+    }
+
+    public void requireApprovePhrase() {
+      requireApprovePhrase(false);
     }
 }

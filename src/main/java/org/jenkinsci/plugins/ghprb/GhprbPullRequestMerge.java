@@ -14,6 +14,7 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.FormValidation;
+import java.util.regex.Pattern;
 import jenkins.tasks.SimpleBuildStep;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHPullRequest;
@@ -52,9 +53,14 @@ public class GhprbPullRequestMerge extends Recorder implements SimpleBuildStep {
 
     private final Boolean onlyApprovedCode;
 
+    private final Boolean requireApprovePhrase;
+
+    private final Pattern approveCommentPhrase;
+
     @DataBoundConstructor
     public GhprbPullRequestMerge(String mergeComment, boolean onlyAdminsMerge, boolean disallowOwnCode, boolean failOnNonMerge,
-                                 boolean deleteOnMerge, boolean allowMergeWithoutTriggerPhrase, boolean onlyApprovedCode) {
+                                 boolean deleteOnMerge, boolean allowMergeWithoutTriggerPhrase, boolean onlyApprovedCode,
+                                 boolean requireApprovePhrase, String approveCommentPhrase) {
 
         this.mergeComment = mergeComment;
         this.onlyAdminsMerge = onlyAdminsMerge;
@@ -63,6 +69,8 @@ public class GhprbPullRequestMerge extends Recorder implements SimpleBuildStep {
         this.deleteOnMerge = deleteOnMerge;
         this.allowMergeWithoutTriggerPhrase = allowMergeWithoutTriggerPhrase;
         this.onlyApprovedCode = onlyApprovedCode;
+        this.requireApprovePhrase = requireApprovePhrase;
+        this.approveCommentPhrase = Ghprb.compilePattern(approveCommentPhrase);
     }
 
     public String getMergeComment() {
@@ -87,6 +95,14 @@ public class GhprbPullRequestMerge extends Recorder implements SimpleBuildStep {
 
     public boolean getOnlyApprovedCode() {
         return onlyApprovedCode == null ? false : onlyApprovedCode;
+    }
+
+    public boolean getRequireApprovePhrase() {
+        return requireApprovePhrase == null ? false : requireApprovePhrase;
+    }
+
+    public String getApproveCommentPhrase() {
+        return approveCommentPhrase == null ? "" : approveCommentPhrase.pattern();
     }
 
     public Boolean getAllowMergeWithoutTriggerPhrase() {
@@ -239,7 +255,8 @@ public class GhprbPullRequestMerge extends Recorder implements SimpleBuildStep {
     private boolean isApproved(GHPullRequest pr) {
         for (GHPullRequestReview review : pr.listReviews()) {
             if (review.getState() == GHPullRequestReviewState.APPROVED) {
-                return true;
+                String body = review.getBody();
+                return !requireApprovePhrase || approveCommentPhrase.matcher(body).matches();
             }
         }
         return false;

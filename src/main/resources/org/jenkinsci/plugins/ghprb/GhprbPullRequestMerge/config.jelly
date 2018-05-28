@@ -21,4 +21,10 @@
     <f:entry title="Merge only approved code" field="onlyApprovedCode">
         <f:checkbox />
     </f:entry>
+    <f:entry title="Require approve comment phrase" field="requireApprovePhrase">
+        <f:checkbox />
+    </f:entry>
+    <f:entry title="Approve comment phrase" field="approveCommentPhrase">
+        <f:textarea />
+    </f:entry>
 </j:jelly>

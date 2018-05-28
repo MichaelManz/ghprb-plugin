@@ -61,7 +61,9 @@ public class GhprbContextExtensionPoint extends ContextExtensionPoint {
                 context.failOnNonMerge,
                 context.deleteOnMerge,
                 context.allowMergeWithoutTriggerPhrase,
-                context.onlyApprovedCode);
+                context.onlyApprovedCode,
+                context.requireApprovePhrase,
+                context.approveCommentPhrase);
     }
 
     @DslExtensionMethod(context = WrapperContext.class)
