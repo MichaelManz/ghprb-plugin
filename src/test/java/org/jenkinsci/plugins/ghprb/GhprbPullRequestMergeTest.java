@@ -70,6 +70,9 @@ public class GhprbPullRequestMergeTest {
     private GHPullRequestReview pullRequestReview;
 
     @Mock
+    private GHPullRequestReview pullRequestReview2;
+
+    @Mock
     private GitUser committer;
 
     @Mock
@@ -202,8 +205,8 @@ public class GhprbPullRequestMergeTest {
         Mockito.when(pr.listReviews()).thenReturn(pagedItr);
         Mockito.when(pagedItr.iterator()).thenReturn(itr);
 
-        given(itr.hasNext()).willReturn(true, false);
-        given(itr.next()).willReturn(pullRequestReview);
+        given(itr.hasNext()).willReturn(true, true, false);
+        given(itr.next()).willReturn(pullRequestReview2, pullRequestReview);
     }
 
     @After
@@ -231,6 +234,20 @@ public class GhprbPullRequestMergeTest {
             String committerEmail,
             String comment,
             GHPullRequestReviewState reviewState
+    ) throws IOException {
+        setupConditions(prUserLogin, triggerLogin, committerName, committerEmail,
+            comment, reviewState, "");
+    }
+
+    @SuppressWarnings("unchecked")
+    private void setupConditions(
+        String prUserLogin,
+        String triggerLogin,
+        String committerName,
+        String committerEmail,
+        String comment,
+        GHPullRequestReviewState reviewState,
+        String reviewComment
     ) throws IOException {
         given(triggerSender.getLogin()).willReturn(triggerLogin);
         given(triggerSender.getName()).willReturn(committerName);
@@ -260,6 +277,7 @@ public class GhprbPullRequestMergeTest {
 
         mockReviewList();
         Mockito.when(pullRequestReview.getState()).thenReturn(reviewState);
+        Mockito.when(pullRequestReview.getBody()).thenReturn(reviewComment);
     }
 
     private void setupConditions(String triggerLogin, String committerName, String committerEmail, String comment) throws IOException {
@@ -274,16 +292,37 @@ public class GhprbPullRequestMergeTest {
             boolean allowMergeWithoutTriggerPhrase,
             boolean onlyApprovedCode
     ) {
+        return setupMerger(onlyAdminsMerge,
+            disallowOwnCode,
+            failOnNonMerge,
+            deleteOnMerge,
+            allowMergeWithoutTriggerPhrase,
+            onlyApprovedCode,
+            false,
+            "");
+    }
+
+    private GhprbPullRequestMerge setupMerger(
+        boolean onlyAdminsMerge,
+        boolean disallowOwnCode,
+        boolean failOnNonMerge,
+        boolean deleteOnMerge,
+        boolean allowMergeWithoutTriggerPhrase,
+        boolean onlyApprovedCode,
+        boolean requireApprovePhrase,
+        String approveCommentPhrase
+    ) {
 
         GhprbPullRequestMerge merger = spy(new GhprbPullRequestMerge(
-                mergeComment,
-                onlyAdminsMerge,
-                disallowOwnCode,
-                failOnNonMerge,
-                deleteOnMerge,
-                allowMergeWithoutTriggerPhrase,
-                onlyApprovedCode,
-                false, ""));
+            mergeComment,
+            onlyAdminsMerge,
+            disallowOwnCode,
+            failOnNonMerge,
+            deleteOnMerge,
+            allowMergeWithoutTriggerPhrase,
+            onlyApprovedCode,
+            requireApprovePhrase,
+            approveCommentPhrase));
 
         merger.setHelper(helper);
 
@@ -448,5 +487,40 @@ public class GhprbPullRequestMergeTest {
         merger.perform(build, mockFilePath, launcher, listener);
         verify(pr, times(1)).merge(mergeComment);
 
+    }
+
+    @Test
+    public void testOnlyApprovedCodeWithApprovalPhrase() throws Exception {
+        boolean onlyApprovedCode = true;
+        boolean requireApprovePhrase = true;
+        String approveCommentPhrase = "ship it";
+        GhprbPullRequestMerge merger = setupMerger(false, false,
+            false, false, false,
+            onlyApprovedCode, requireApprovePhrase, approveCommentPhrase);
+
+        setupConditions(nonCommitterName, adminLogin, committerName, committerEmail, triggerPhrase, GHPullRequestReviewState.APPROVED);
+        merger.perform(build, mockFilePath, launcher, listener);
+        verify(pr, times(0)).merge(mergeComment);
+
+        setupConditions(nonCommitterName, adminLogin, committerName, committerEmail, triggerPhrase, GHPullRequestReviewState.APPROVED, approveCommentPhrase);
+        merger.perform(build, mockFilePath, launcher, listener);
+        verify(pr, times(1)).merge(mergeComment);
+    }
+
+
+    @Test
+    public void testMultipleApprovalComments() throws Exception {
+        boolean onlyApprovedCode = true;
+        boolean requireApprovePhrase = true;
+        String approveCommentPhrase = "ship it";
+        GhprbPullRequestMerge merger = setupMerger(false, false,
+            false, false, false,
+            onlyApprovedCode, requireApprovePhrase, approveCommentPhrase);
+
+        setupConditions(nonCommitterName, adminLogin, committerName, committerEmail, triggerPhrase, GHPullRequestReviewState.APPROVED, approveCommentPhrase);
+        Mockito.when(pullRequestReview2.getState()).thenReturn(GHPullRequestReviewState.APPROVED);
+        Mockito.when(pullRequestReview2.getBody()).thenReturn("whatever");
+        merger.perform(build, mockFilePath, launcher, listener);
+        verify(pr, times(1)).merge(mergeComment);
     }
 }
