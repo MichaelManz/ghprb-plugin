@@ -254,12 +254,16 @@ public class GhprbPullRequestMerge extends Recorder implements SimpleBuildStep {
 
     private boolean isApproved(GHPullRequest pr) {
         for (GHPullRequestReview review : pr.listReviews()) {
-            if (review.getState() == GHPullRequestReviewState.APPROVED) {
-                String body = review.getBody();
-                return !requireApprovePhrase || approveCommentPhrase.matcher(body).matches();
+            if (review.getState() == GHPullRequestReviewState.APPROVED && approvePhraseMatches(review)) {
+                return true;
             }
         }
         return false;
+    }
+
+    private boolean approvePhraseMatches(GHPullRequestReview review) {
+        String body = review.getBody();
+        return !requireApprovePhrase || approveCommentPhrase.matcher(body).matches();
     }
 
     private void deleteBranch(Run<?, ?> build, Launcher launcher, final TaskListener listener) {
