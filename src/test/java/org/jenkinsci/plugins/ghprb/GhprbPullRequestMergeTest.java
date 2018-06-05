@@ -276,6 +276,7 @@ public class GhprbPullRequestMergeTest {
         given(cause.getCommentBody()).willReturn(comment);
 
         mockReviewList();
+        Mockito.when(pullRequestReview2.getState()).thenReturn(GHPullRequestReviewState.PENDING);
         Mockito.when(pullRequestReview.getState()).thenReturn(reviewState);
         Mockito.when(pullRequestReview.getBody()).thenReturn(reviewComment);
     }
@@ -502,13 +503,18 @@ public class GhprbPullRequestMergeTest {
         merger.perform(build, mockFilePath, launcher, listener);
         verify(pr, times(0)).merge(mergeComment);
 
-        setupConditions(nonCommitterName, adminLogin, committerName, committerEmail, triggerPhrase, GHPullRequestReviewState.APPROVED, approveCommentPhrase);
+        setupConditions(nonCommitterName, adminLogin, committerName, committerEmail, triggerPhrase,
+                                                                GHPullRequestReviewState.APPROVED, approveCommentPhrase);
         merger.perform(build, mockFilePath, launcher, listener);
         verify(pr, times(1)).merge(mergeComment);
     }
 
-
-    @Test
+  /**
+   * Tests that the merger checks all approve comments for the merge trigger phrase
+   *
+   * @throws Exception
+   */
+  @Test
     public void testMultipleApprovalComments() throws Exception {
         boolean onlyApprovedCode = true;
         boolean requireApprovePhrase = true;
@@ -517,10 +523,18 @@ public class GhprbPullRequestMergeTest {
             false, false, false,
             onlyApprovedCode, requireApprovePhrase, approveCommentPhrase);
 
-        setupConditions(nonCommitterName, adminLogin, committerName, committerEmail, triggerPhrase, GHPullRequestReviewState.APPROVED, approveCommentPhrase);
+        setupConditions(nonCommitterName, adminLogin, committerName, committerEmail, triggerPhrase,
+                                                                GHPullRequestReviewState.APPROVED, approveCommentPhrase);
         Mockito.when(pullRequestReview2.getState()).thenReturn(GHPullRequestReviewState.APPROVED);
         Mockito.when(pullRequestReview2.getBody()).thenReturn("whatever");
         merger.perform(build, mockFilePath, launcher, listener);
         verify(pr, times(1)).merge(mergeComment);
+
+      setupConditions(nonCommitterName, adminLogin, committerName, committerEmail, triggerPhrase,
+          GHPullRequestReviewState.APPROVED, approveCommentPhrase);
+      Mockito.when(pullRequestReview2.getState()).thenReturn(GHPullRequestReviewState.REQUEST_CHANGES);
+      merger.perform(build, mockFilePath, launcher, listener);
+      verify(pr, times(1)).merge(mergeComment);
     }
+
 }

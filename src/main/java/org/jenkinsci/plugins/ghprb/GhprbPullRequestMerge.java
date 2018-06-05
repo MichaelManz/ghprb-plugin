@@ -21,7 +21,6 @@ import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHPullRequestCommitDetail;
 import org.kohsuke.github.GHPullRequestCommitDetail.Commit;
 import org.kohsuke.github.GHPullRequestReview;
-import org.kohsuke.github.GHPullRequestReviewState;
 import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
@@ -253,12 +252,19 @@ public class GhprbPullRequestMerge extends Recorder implements SimpleBuildStep {
     }
 
     private boolean isApproved(GHPullRequest pr) {
+        boolean result = false;
         for (GHPullRequestReview review : pr.listReviews()) {
-            if (review.getState() == GHPullRequestReviewState.APPROVED && approvePhraseMatches(review)) {
-                return true;
+            switch (review.getState()) {
+                case APPROVED :
+                    result = result || approvePhraseMatches(review);
+                    break;
+                case REQUEST_CHANGES:
+                    return false;
+                default:
+                    // noop
             }
         }
-        return false;
+        return result;
     }
 
     private boolean approvePhraseMatches(GHPullRequestReview review) {
