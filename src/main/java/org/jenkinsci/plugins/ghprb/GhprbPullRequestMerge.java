@@ -85,7 +85,7 @@ public class GhprbPullRequestMerge extends Recorder implements SimpleBuildStep {
     }
 
     public BuildStepMonitor getRequiredMonitorService() {
-        return BuildStepMonitor.BUILD;
+        return BuildStepMonitor.NONE;
     }
 
     private transient GhprbTrigger trigger;
